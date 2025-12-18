@@ -2,7 +2,6 @@
 //  MediMapAppApp.swift
 //  MediMapApp
 //
-//  Created by Simon Bakhanets on 17.12.2025.
 //
 
 import SwiftUI
@@ -11,7 +10,7 @@ import SwiftUI
 struct MediMapAppApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootView()
         }
     }
 }
