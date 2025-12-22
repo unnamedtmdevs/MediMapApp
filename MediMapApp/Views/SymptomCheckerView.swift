@@ -115,7 +115,7 @@ struct SymptomCheckerView: View {
             .sheet(isPresented: $showRecommendation) {
                 RecommendationView(
                     selectedSymptoms: viewModel.selectedSymptomsDetails,
-                    recommendation: viewModel.getSeverityRecommendation()
+                    viewModel: viewModel
                 )
             }
         }
@@ -183,103 +183,166 @@ struct FilterChip: View {
 struct RecommendationView: View {
     @Environment(\.dismiss) var dismiss
     let selectedSymptoms: [Symptom]
-    let recommendation: String
+    let viewModel: SymptomCheckerViewModel
+    
+    var recommendation: (text: String, severity: SymptomSeverity?) {
+        viewModel.getSeverityRecommendation()
+    }
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 20) {
-                // Icon
-                Image(systemName: "heart.text.square.fill")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 80, height: 80)
-                    .foregroundColor(Color(hex: "#f65505"))
-                    .padding(.top, 30)
-                
-                // Recommendation
-                VStack(spacing: 15) {
-                    Text("Health Recommendation")
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
-                        .foregroundColor(Color(hex: "#003265"))
+            ScrollView {
+                VStack(spacing: 20) {
+                    // Icon
+                    Image(systemName: "heart.text.square.fill")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 80, height: 80)
+                        .foregroundColor(Color(hex: "#f65505"))
+                        .padding(.top, 30)
                     
-                    Text(recommendation)
-                        .font(.system(size: 18, weight: .medium, design: .rounded))
-                        .foregroundColor(.primary)
-                        .multilineTextAlignment(.center)
-                        .padding()
-                        .background(Color(.systemGray6))
-                        .cornerRadius(15)
-                }
-                .padding(.horizontal)
+                    // Recommendation
+                    VStack(spacing: 15) {
+                        Text("Health Recommendation")
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .foregroundColor(Color(hex: "#003265"))
+                        
+                        Text(recommendation.text)
+                            .font(.system(size: 18, weight: .medium, design: .rounded))
+                            .foregroundColor(.primary)
+                            .multilineTextAlignment(.center)
+                            .padding()
+                            .background(Color(.systemGray6))
+                            .cornerRadius(15)
+                    }
+                    .padding(.horizontal)
                 
-                // Selected symptoms
-                VStack(alignment: .leading, spacing: 15) {
-                    Text("Selected Symptoms:")
-                        .font(.system(size: 20, weight: .semibold, design: .rounded))
-                        .foregroundColor(Color(hex: "#003265"))
-                    
-                    ForEach(selectedSymptoms) { symptom in
-                        HStack {
-                            Circle()
-                                .fill(Color(hex: symptom.severity.color))
-                                .frame(width: 10, height: 10)
-                            
-                            Text(symptom.name)
-                                .font(.system(size: 16, weight: .regular, design: .rounded))
-                            
-                            Spacer()
-                            
-                            Text(symptom.severity.rawValue)
-                                .font(.system(size: 14, weight: .medium, design: .rounded))
-                                .foregroundColor(.gray)
+                    // Selected symptoms
+                    VStack(alignment: .leading, spacing: 15) {
+                        Text("Selected Symptoms:")
+                            .font(.system(size: 20, weight: .semibold, design: .rounded))
+                            .foregroundColor(Color(hex: "#003265"))
+                        
+                        ForEach(selectedSymptoms) { symptom in
+                            HStack {
+                                Circle()
+                                    .fill(Color(hex: symptom.severity.color))
+                                    .frame(width: 10, height: 10)
+                                
+                                Text(symptom.name)
+                                    .font(.system(size: 16, weight: .regular, design: .rounded))
+                                
+                                Spacer()
+                                
+                                Text(symptom.severity.rawValue)
+                                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                                    .foregroundColor(.gray)
+                            }
                         }
                     }
-                }
-                .padding()
-                .background(Color.white)
-                .cornerRadius(15)
-                .shadow(color: .black.opacity(0.05), radius: 5)
-                .padding(.horizontal)
-                
-                Spacer()
-                
-                // Medical Disclaimer
-                VStack(spacing: 8) {
-                    HStack {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundColor(.red)
-                        Text("Important Medical Disclaimer")
-                            .font(.system(size: 14, weight: .bold, design: .rounded))
-                            .foregroundColor(.red)
+                    .padding()
+                    .background(Color.white)
+                    .cornerRadius(15)
+                    .shadow(color: .black.opacity(0.05), radius: 5)
+                    .padding(.horizontal)
+                    
+                    // Medical Sources Section
+                    VStack(alignment: .leading, spacing: 15) {
+                        HStack {
+                            Image(systemName: "doc.text.fill")
+                                .foregroundColor(Color(hex: "#f65505"))
+                            Text("Medical Sources & References")
+                                .font(.system(size: 20, weight: .semibold, design: .rounded))
+                                .foregroundColor(Color(hex: "#003265"))
+                        }
+                        
+                        Text(viewModel.getSourcesRelevantText())
+                            .font(.system(size: 14, weight: .regular, design: .rounded))
+                            .foregroundColor(.gray)
+                            .padding(.bottom, 8)
+                        
+                        ForEach(viewModel.medicalSources) { source in
+                            Button(action: {
+                                if let url = URL(string: source.url) {
+                                    #if canImport(UIKit)
+                                    UIApplication.shared.open(url)
+                                    #elseif canImport(AppKit)
+                                    NSWorkspace.shared.open(url)
+                                    #endif
+                                }
+                            }) {
+                                HStack(spacing: 12) {
+                                    Image(systemName: "link.circle.fill")
+                                        .foregroundColor(Color(hex: "#f65505"))
+                                        .font(.system(size: 18))
+                                    
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text(source.name)
+                                            .font(.system(size: 15, weight: .medium, design: .rounded))
+                                            .foregroundColor(.primary)
+                                        Text(source.organization)
+                                            .font(.system(size: 12, weight: .regular, design: .rounded))
+                                            .foregroundColor(.gray)
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    Image(systemName: "arrow.up.right.square")
+                                        .foregroundColor(.gray)
+                                        .font(.system(size: 16))
+                                }
+                                .padding(12)
+                                .background(Color(.systemGray6))
+                                .cornerRadius(10)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
                     }
+                    .padding()
+                    .background(Color.white)
+                    .cornerRadius(15)
+                    .shadow(color: .black.opacity(0.05), radius: 5)
+                    .padding(.horizontal)
                     
-                    Text("This symptom checker is NOT a diagnostic tool and does not provide medical advice. It is for informational purposes only.")
-                        .font(.system(size: 13, weight: .medium, design: .rounded))
-                        .foregroundColor(.primary)
-                        .multilineTextAlignment(.center)
+                    // Medical Disclaimer
+                    VStack(spacing: 8) {
+                        HStack {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(.red)
+                            Text("Important Medical Disclaimer")
+                                .font(.system(size: 14, weight: .bold, design: .rounded))
+                                .foregroundColor(.red)
+                        }
+                        
+                        Text("This symptom checker is NOT a diagnostic tool and does not provide medical advice. It is for informational purposes only.")
+                            .font(.system(size: 13, weight: .medium, design: .rounded))
+                            .foregroundColor(.primary)
+                            .multilineTextAlignment(.center)
+                        
+                        Text("Always consult with a qualified healthcare professional for proper medical evaluation, diagnosis and treatment. If you have a medical emergency, call emergency services immediately.")
+                            .font(.system(size: 12, weight: .regular, design: .rounded))
+                            .foregroundColor(.gray)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding()
+                    .background(Color.red.opacity(0.1))
+                    .cornerRadius(12)
+                    .padding(.horizontal)
                     
-                    Text("Always consult with a qualified healthcare professional for proper medical evaluation, diagnosis and treatment. If you have a medical emergency, call emergency services immediately.")
-                        .font(.system(size: 12, weight: .regular, design: .rounded))
-                        .foregroundColor(.gray)
-                        .multilineTextAlignment(.center)
+                    Button(action: {
+                        dismiss()
+                    }) {
+                        Text("Done")
+                            .font(.system(size: 18, weight: .semibold, design: .rounded))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color(hex: "#f65505"))
+                            .cornerRadius(15)
+                            .padding(.horizontal)
+                    }
+                    .padding(.bottom, 20)
                 }
-                .padding()
-                .background(Color.red.opacity(0.1))
-                .cornerRadius(12)
-                
-                Button(action: {
-                    dismiss()
-                }) {
-                    Text("Done")
-                        .font(.system(size: 18, weight: .semibold, design: .rounded))
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color(hex: "#f65505"))
-                        .cornerRadius(15)
-                        .padding(.horizontal)
-                }
-                .padding(.bottom, 20)
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
